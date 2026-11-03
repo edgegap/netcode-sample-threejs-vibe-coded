@@ -1,0 +1,50 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #070a14; color: #eef1f8;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif; touch-action: none; -webkit-user-select: none; user-select: none; }
+canvas { display: block; }
+[hidden] { display: none !important; }
+.ui { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+
+.menu { pointer-events: auto; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(440px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto; padding: 26px; border-radius: 16px;
+  background: rgba(10, 14, 28, .88); backdrop-filter: blur(6px); box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  border: 1px solid rgba(93, 123, 255, .35); }
+.menu h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: .5px;
+  background: linear-gradient(90deg, #35e0ff, #ff4fd8, #9dff5a, #ffb340); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.menu .tagline { margin: 0 0 18px; color: #aab3c8; }
+.menu label { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+.menu input { flex: 1; min-width: 0; padding: 9px 12px; border-radius: 8px; border: 1px solid #39425a; background: #141a2c; color: inherit; font-size: 16px; }
+.menu .bots { display: flex; gap: 6px; align-items: center; margin-bottom: 16px; }
+.menu .bots button { width: 40px; padding: 7px 0; }
+.menu .bots button.on { background: #5d7bff; color: #fff; }
+.menu .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.menu button { padding: 11px 16px; border: 0; border-radius: 8px; font-size: 15px; cursor: pointer; background: #262e46; color: inherit; }
+.menu button.primary { background: linear-gradient(90deg, #35e0ff, #5d7bff); color: #061022; font-weight: 700; }
+.menu button:disabled { opacity: .45; cursor: not-allowed; }
+.menu .status { min-height: 1.3em; color: #ffd166; margin: 12px 0 8px; }
+.menu .help { margin: 0; color: #8892a8; font-size: 13px; line-height: 1.45; }
+
+.hud .board { position: absolute; left: 12px; top: 12px; margin: 0; padding: 8px 12px; list-style: none;
+  background: rgba(0,0,0,.45); border-radius: 10px; min-width: 170px; font-size: 14px; }
+.hud .board li { display: flex; justify-content: space-between; gap: 14px; border-left: 4px solid var(--c); padding-left: 8px; margin: 3px 0; }
+.hud .board li.me { font-weight: 700; }
+.hud .banner { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); padding: 7px 14px;
+  background: rgba(0,0,0,.45); border-radius: 10px; font-size: 17px; font-weight: 600; white-space: pre; }
+.hud .big { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); font-size: clamp(34px, 8vw, 76px);
+  font-weight: 800; text-align: center; text-shadow: 0 4px 24px rgba(0,0,0,.8); }
+.hud .quit { pointer-events: auto; position: absolute; right: 12px; top: 12px; width: 38px; height: 38px; border: 0; border-radius: 50%;
+  background: rgba(0,0,0,.45); color: #c4cbe0; font-size: 18px; cursor: pointer; }
+
+.touch { position: fixed; inset: 0; z-index: 1; touch-action: none; }
+.joy { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); opacity: 0; transition: opacity .1s; pointer-events: none; }
+.joy.on { opacity: 1; }
+.joy-knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,.35); transform: translate(-50%, -50%); }
+.dash-btn { position: absolute; right: 22px; bottom: 28px; width: 96px; height: 96px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35);
+  background: rgba(255, 79, 216, .35); color: #fff; font-weight: 800; font-size: 17px; touch-action: none; }
+.dash-btn:active { background: rgba(255, 79, 216, .65); }
+
+@media (max-width: 600px) {
+  .hud .board { font-size: 12px; min-width: 130px; }
+  .hud .banner { top: auto; bottom: 140px; font-size: 15px; }
+}
