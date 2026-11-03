@@ -1,9 +1,10 @@
-// Orb Herders: menu, HUD and the solo match against bots.
+// Orb Herders: menu, HUD, the solo match against bots, and online matches on Edgegap.
 
 import { createRenderer } from "./render.js";
 import { createInput } from "./input.js";
 import { sfx, unlockAudio } from "./audio.js";
 import * as A from "./arena.js";
+import { LOCAL_PORT, autoplay, cancelMatchmaking, directServer, findMatch, joinServer, loadConfig } from "./online.js";
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -11,6 +12,9 @@ const ui = {
   hud: $("hud"),
   name: $("name"),
   solo: $("solo"),
+  find: $("find"),
+  local: $("local"),
+  cancel: $("cancel"),
   status: $("status"),
   board: $("board"),
   banner: $("banner"),
@@ -92,7 +96,11 @@ function playEvents(events, mySlot, myId) {
 function showMenu(message = "") {
   ui.menu.hidden = false;
   ui.hud.hidden = true;
-  ui.status.textContent = message;
+  ui.solo.hidden = ui.find.hidden = false;
+  ui.local.hidden = !isLocalPage;
+  ui.cancel.hidden = true;
+  ui.find.disabled = !config.matchmakerUrl;
+  ui.status.textContent = message || (config.matchmakerUrl ? "" : "Online play is not configured on this page.");
   input.show(false);
 }
 
@@ -186,9 +194,76 @@ function soloFrame(dt) {
   );
 }
 
+// ---- online match: the server runs the game, we draw its state and send inputs ----------------
+
+const config = await loadConfig();
+const isLocalPage = ["localhost", "127.0.0.1"].includes(location.hostname);
+let online = null; // { server, state, mySlot }
+let searching = false;
+
+async function playOnline(getServer) {
+  unlockAudio();
+  localStorage.setItem("orb-name", ui.name.value);
+  ui.solo.hidden = ui.find.hidden = ui.local.hidden = true;
+  ui.cancel.hidden = false;
+  searching = true;
+  const status = (text) => (ui.status.textContent = text);
+  try {
+    const { url, ticketId } = await getServer(status);
+    if (!searching) return;
+    status("Connecting...");
+    const session = { server: null, state: null, mySlot: null, url };
+    session.server = await joinServer(url, ui.name.value, ticketId, {
+      onStatus: status,
+      onState: (msg) => {
+        session.state = msg;
+        const mine = msg.s.d.find((d) => d.id === session.server?.myId);
+        if (mine && mine.slot !== session.mySlot) renderer.setSlot((session.mySlot = mine.slot));
+        playEvents(msg.s.ev, session.mySlot, session.server?.myId);
+        countdownBeep(msg);
+      },
+      onClose: () => {
+        const finished = online?.state?.phase === "over";
+        online = null;
+        renderer.clear();
+        showMenu(finished ? "Match finished. Play again?" : "Disconnected from the server.");
+      },
+    });
+    if (!searching) return session.server.close(); // cancelled while connecting
+    searching = false;
+    online = session;
+    renderer.clear();
+    showHud();
+  } catch (err) {
+    searching = false;
+    showMenu(String(err?.message ?? err));
+  }
+}
+
+function onlineFrame(dt) {
+  const { server, state } = online;
+  const { sx, sy, dash } = input.read();
+  if (state?.phase === "playing") server.sendInput({ ...renderer.toWorld(sx, sy), dash });
+  if (!state) return;
+  const slotOf = new Map(state.s.d.map((d) => [d.id, d.slot]));
+  const nameOf = new Map(state.players.map((p) => [p.id, p.name]));
+  renderHud({ ...state, players: state.players.map((p) => ({ ...p, slot: slotOf.get(p.id) })) }, server.myId);
+  // Ease toward the latest server snapshot (20 per second) every frame.
+  renderer.sync({ drones: state.s.d.map((d) => ({ ...d, name: nameOf.get(d.id) })), orbs: state.s.o }, dt, 14);
+}
+
 ui.solo.onclick = startSolo;
+ui.find.onclick = () => playOnline((status) => findMatch(config, status));
+ui.local.onclick = () => playOnline(async () => ({ url: `ws://${location.hostname}:${LOCAL_PORT}` }));
+ui.cancel.onclick = () => {
+  searching = false;
+  cancelMatchmaking();
+  online?.server.close();
+  showMenu("Cancelled.");
+};
 ui.quit.onclick = () => {
   solo = null;
+  if (online) online.server.close();
   renderer.clear();
   showMenu();
 };
@@ -196,14 +271,33 @@ ui.quit.onclick = () => {
 // ---- main loop -------------------------------------------------------------------------------
 
 let last = performance.now();
+function frame(dt) {
+  if (solo) soloFrame(dt);
+  else if (online) onlineFrame(dt);
+  renderer.frame(dt);
+}
 function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (solo) soloFrame(dt);
-  renderer.frame(dt);
+  frame(dt);
   requestAnimationFrame(loop);
 }
 showMenu();
 requestAnimationFrame(loop);
+if (directServer) playOnline(async () => ({ url: directServer }));
+else if (autoplay === "1" && config.matchmakerUrl) ui.find.click();
+else if (autoplay === "local") ui.local.click();
+
 // For browser automation: read the state, or advance frames when the tab is hidden (no requestAnimationFrame).
-window.__game = { get phase() { return solo?.phase ?? "menu"; }, get solo() { return solo; }, tick: (dt) => solo && soloFrame(dt) };
+window.__game = {
+  get phase() {
+    return solo?.phase ?? online?.state?.phase ?? (online ? "connected" : searching ? "searching" : "menu");
+  },
+  get solo() {
+    return solo;
+  },
+  get online() {
+    return online && { url: online.url, myId: online.server.myId, match: online.server.match, players: online.state?.players, result: online.state?.result };
+  },
+  tick: frame,
+};
