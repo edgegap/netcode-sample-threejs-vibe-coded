@@ -28,3 +28,31 @@ The developer pasted a one-page brief: build an original, mobile-friendly Three.
 ### 5. Recommended: pick the number of bots
 
 > Let me pick 1, 2 or 3 bots before the match.
+
+## Phase 2: online multiplayer on Edgegap (tag `after`)
+
+### 6. Recommended: the one prompt that starts the multiplayer work
+
+> Make this game online multiplayer on Edgegap. Use the Edgegap MCP and its edgegap-threejs skill. Keep the solo mode, add a Find Match button, 2 to 4 players per match, bots fill empty seats. Ask me before you create anything in my Edgegap account.
+
+What the agent did with it, in order:
+
+1. Loaded the skills through the MCP: `edgegap_list_skills`, then `edgegap_get_skill` for `edgegap-threejs`, `edgegap-server-design` and `edgegap-local-testing`, and the templates and references as each step needed them.
+2. Copied the skill's server templates (`main.js`, `room.js`, `edgegap.js`, `util.js`, Dockerfile) and wrote `server/game.js` on top of the same `client/arena.js` rules the solo mode runs.
+3. Added Find Match to the page with the Edgegap JS SDK (`client/online.js`, `client/net.js` from the skill).
+4. Tested without Edgegap: `tests/local-match.mjs` (two headless players, full match) and `tests/parity.sh` (the container with Edgegap-style env vars, random external port, SIGTERM, self-stop).
+5. Asked before touching the account, then pushed the image, created the app and version, ran one tagged direct deployment and watched it stop itself.
+
+### 7. Given: approvals and account steps
+
+> Yes, go ahead
+
+The developer then added the registry login to the app version in the dashboard, set the two registry secrets on the GitHub repo, created the matchmaker from `matchmaker/arena.json` and pasted its API URL and Auth Token. Those are the only steps the agent could not do: the Edgegap API does not hand registry credentials to an API token, and matchmakers are created in the dashboard.
+
+### 8. Recommended: prove it
+
+> Run the end-to-end test through the matchmaker, then try Find Match from two browser tabs. Make sure nothing is left running.
+
+### 9. Recommended: ship it
+
+> Put the client on GitHub Pages, build and push the server image from GitHub Actions on every push to main, and write a short README for someone who vibe-coded their own game.
