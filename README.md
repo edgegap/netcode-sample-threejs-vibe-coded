@@ -1,5 +1,7 @@
 # Orb Herders: a vibe-coded game made online multiplayer on Edgegap
 
+![Orb Herders, a vibe-coded Three.js game made online multiplayer on Edgegap dedicated servers by an AI agent.](docs/images/card.jpg)
+
 Orb Herders is a small Three.js browser game: hover drones push glowing orbs into their own goal and dash into each other to knock rivals away. It was first built as a single-player game against bots, the way a vibe coder would build it. Then an AI agent (Claude Code) with the Edgegap MCP server connected turned it into online multiplayer: each match runs on its own authoritative server, placed near its players, started by the Edgegap matchmaker and stopped when the match ends. Every line in this repo was written by the agent; the prompts are in [PROMPTS.md](PROMPTS.md).
 
 **Play:** https://edgegap.github.io/netcode-sample-threejs-vibe-coded/ (Find Match for online, or Play vs bots). Works on phones and desktops.
