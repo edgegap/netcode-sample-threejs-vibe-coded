@@ -79,6 +79,25 @@ MM_URL=https://<matchmaker>.edgegap.net MM_TOKEN=<matchmaker auth token> node te
 - `parity.sh`: the server image run the way Edgegap runs it (injected variables, a random outside port, two servers on one host, SIGTERM, self-stop).
 - `e2e.mjs`: two headless players go through the real matchmaker, play a whole match on Edgegap and check the server stopped itself.
 
+## Run it on your own Edgegap account
+
+The online mode needs a server image, an app version and a matchmaker in your account. Replace `<tag>` with a UTC timestamp such as `20261127-1517`.
+
+1. **Image.** In the dashboard, open Container Registry and log in (`docker login registry.edgegap.com`), then build and push from the repo root:
+
+   ```bash
+   docker build --platform linux/amd64 -f server/Dockerfile -t registry.edgegap.com/<project>/orb-herders:<tag> .
+   ```
+
+   ```bash
+   docker push registry.edgegap.com/<project>/orb-herders:<tag>
+   ```
+
+2. **App version.** Create an application `orb-herders` and a version named `<tag>` for that image: 256 CPU units, 512 MB, one port `7777` with protocol WS and TLS Upgrade on (named `gameport`), restart policy `never`, max duration 30 minutes. Images on `registry.edgegap.com` use the organization's own registry login. (The MCP's `edgegap_create_app_version` does the same in one call.)
+3. **Matchmaker.** Create a matchmaker in the dashboard (Matchmakers) with the contents of [`matchmaker/arena.json`](matchmaker/arena.json), after setting `application.version` to your `<tag>` and adding the origin that serves your page to `allowed_cors_origins` (`https://<user>.github.io` for GitHub Pages, `http://localhost:8080` is already there). Start it. The profile is called `arena`; a matchmaker that holds several games can use another profile name, which the page reads from `profile` in `client/config.js` or `?profile=<name>`.
+4. **Client.** Copy the matchmaker's API URL and Auth Token into `client/config.js` (or into `client/config.local.js`, which is git-ignored) and serve `client/` as in "Run it locally". **Find match** now starts a server on Edgegap; the Auth Token is the matchmaker's client token, not your Edgegap API token. The server stops itself when the match ends or everyone has left.
+5. **Check.** `MM_URL=<api url> MM_TOKEN=<auth token> node tests/e2e.mjs arena 2` plays a whole match through your matchmaker.
+
 ## Ship a new server build
 
 Pushing to `main` builds the image and pushes it to the Edgegap Container Registry with a UTC timestamp tag (`.github/workflows/server-image.yml`; secrets `EDGEGAP_REGISTRY_USERNAME`, `EDGEGAP_REGISTRY_TOKEN`, variable `EDGEGAP_REGISTRY_PROJECT`). Point the app version at the new tag (dashboard, the MCP's `edgegap_update_app_version`, or [edgegap/deploy-action](https://github.com/edgegap/deploy-action)); running matches keep the old build. Changes under `client/` publish to GitHub Pages (`.github/workflows/pages.yml`).
