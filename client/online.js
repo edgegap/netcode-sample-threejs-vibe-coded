@@ -6,7 +6,7 @@ import { getConnectionUrl, matchmaking } from "@edgegap/sdk";
 import { connect } from "./net.js";
 import baseConfig from "./config.js";
 
-export const PROFILE = "arena"; // matchmaker profile name
+const DEFAULT_PROFILE = "arena"; // matchmaker profile (matchmaker/arena.json); override with config.profile or ?profile=
 export const LOCAL_PORT = 7777;
 
 const params = new URLSearchParams(location.search);
@@ -19,12 +19,13 @@ const MATCHMAKING_STATUS = {
 };
 
 export async function loadConfig() {
-  const cfg = { ...baseConfig };
+  const cfg = { profile: DEFAULT_PROFILE, ...baseConfig };
   try {
     Object.assign(cfg, (await import("./config.local.js")).default);
   } catch {}
   if (params.get("mm")) cfg.matchmakerUrl = params.get("mm");
   if (params.get("token")) cfg.matchmakerToken = params.get("token");
+  if (params.get("profile")) cfg.profile = params.get("profile");
   return cfg;
 }
 
@@ -40,7 +41,7 @@ export async function findMatch(config, onStatus) {
   mm.initialize(undefined, ({ current }) => {
     if (MATCHMAKING_STATUS[current?.status]) onStatus(MATCHMAKING_STATUS[current.status]);
   });
-  mm.createGroup({ profile: PROFILE, attributes: {}, is_ready: true }, true);
+  mm.createGroup({ profile: config.profile, attributes: {}, is_ready: true }, true);
   try {
     const assignment = await mm.nextAssignment();
     const ticketId = mm.group.current.ticket_id;
